@@ -134,7 +134,7 @@ def aggregate_contacts(conditions, md_time, dir_path):
     logging.info(f"Aggregated CSV file saved: {os.path.abspath(out_path)}")
     return df_out
 
-def boxplot_aggregated(src, md_time, dir_path, fmt):
+def boxplot_aggregated(src, md_time, dir_path, fmt, subtitle):
     """
 
     :param src: the data source.
@@ -145,6 +145,8 @@ def boxplot_aggregated(src, md_time, dir_path, fmt):
     :type dir_path: str
     :param fmt: the plot output format.
     :type fmt: str
+    :param subtitle: the subtitle of the plot.
+    :type subtitle: str
     """
     plt.figure(figsize=(15, 15))
     ax = sns.boxplot(data= src, x="domains", y="contacts", hue="conditions",
@@ -157,11 +159,13 @@ def boxplot_aggregated(src, md_time, dir_path, fmt):
     handles, labels = ax.get_legend_handles_labels()
     ax.legend(handles[:3], labels[:3], title="Condition")
 
-    plot = ax.get_figure()
     plt.suptitle(f"Contacts by domain at {md_time} ns", fontsize="large", fontweight="bold")
+    if subtitle:
+        plt.title(subtitle)
     plt.xlabel("Domains", fontweight="bold")
     plt.ylabel(f"Number of contacts", fontweight="bold")
     out_path_plot = os.path.join(dir_path, f"contacts_aggregated_{md_time}-ns.{fmt}")
+    plot = ax.get_figure()
     plot.savefig(out_path_plot)
     logging.info(f"Aggregated contacts by condition: {os.path.abspath(out_path_plot)}")
 
@@ -191,6 +195,8 @@ if __name__ == "__main__":
     parser.add_argument("-o", "--out", required=True, type=str, help="the path to the output directory.")
     parser.add_argument("-t", "--md-time", required=True, type=int,
                         help="the molecular dynamics duration in nanoseconds.")
+    parser.add_argument("-s", "--subtitle", required=False, type=str,
+                        help="Free text used as a subtitle for the boxplots.")
     parser.add_argument("-x", "--format", required=False, default="svg",
                         choices=["eps", "jpg", "jpeg", "pdf", "pgf", "png", "ps", "raw", "svg", "svgz", "tif", "tiff"],
                         help="the output plots format: 'eps': 'Encapsulated Postscript', "
@@ -209,8 +215,8 @@ if __name__ == "__main__":
     parser.add_argument("--version", action="version", version=__version__)
     parser.add_argument("input", type=str,
                         help="the path to the CSV (comma separated without header) file which first column is the "
-                             "condition, the second column the path of the directory containing the contacts analysis "
-                             "files and the third column the color.")
+                             "condition, the second column the path of the directory containing the plots_contacts "
+                             "script CSV output files and the third column the color.")
     args = parser.parse_args()
 
     # create output directory if necessary
@@ -228,4 +234,4 @@ if __name__ == "__main__":
 
     data_conditions = get_conditions(args.input)
     df = aggregate_contacts(data_conditions, args.md_time, args.out)
-    boxplot_aggregated(df, args.md_time, args.out, args.format)
+    boxplot_aggregated(df, args.md_time, args.out, args.format, args.subtitle)
