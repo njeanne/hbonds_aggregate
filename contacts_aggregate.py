@@ -155,9 +155,13 @@ def boxplot_aggregated(src, md_time, dir_path, fmt, subtitle):
                                  linewidth=2, dodge=True, edgecolor="gray",
                                  palette={"insertions": "darkred", "duplications": "chocolate", "WT": "blue"})
     ax.set_xticklabels(ax.get_xticklabels(), rotation=45, horizontalalignment="right")
-    # remove extra legend handles
+    # remove extra legend handles and add the count of samples by condition
     handles, labels = ax.get_legend_handles_labels()
-    ax.legend(handles[:3], labels[:3], title="Condition")
+    custom_labels = []
+    for label in labels[:3]:
+        sample_set = set(src[src["conditions"] == label]["sample"])
+        custom_labels.append(f"{label} ({len(sample_set)})")
+    ax.legend(handles[:3], custom_labels, title="Condition")
 
     plt.suptitle(f"Contacts by domain at {md_time} ns", fontsize="large", fontweight="bold")
     if subtitle:
