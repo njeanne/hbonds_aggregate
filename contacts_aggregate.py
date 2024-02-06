@@ -136,6 +136,7 @@ def aggregate_contacts(conditions, md_time, dir_path):
 
 def boxplot_aggregated(src, md_time, dir_path, fmt, subtitle):
     """
+    Create the boxplots by conditions.
 
     :param src: the data source.
     :type src: pandas.DataFrame
@@ -154,7 +155,11 @@ def boxplot_aggregated(src, md_time, dir_path, fmt, subtitle):
     sns.stripplot(data= src, x="domains", y="contacts", size=8, hue="conditions", marker="o",
                                  linewidth=2, dodge=True, edgecolor="gray",
                                  palette={"insertions": "darkred", "duplications": "chocolate", "WT": "blue"})
-    ax.set_xticklabels(ax.get_xticklabels(), rotation=45, horizontalalignment="right")
+    x_labels = ax.get_xticklabels()
+    new_x_labels = [re.sub(r'(\w+ \w+ \w+)( )',r'\1\n', x.get_text()) for x in x_labels]
+    ax.set_xticklabels(new_x_labels)
+    ax.set_xticklabels(x_labels, rotation=45, horizontalalignment="right")
+
     # remove extra legend handles and add the count of samples by condition
     handles, labels = ax.get_legend_handles_labels()
     custom_labels = []
