@@ -228,8 +228,10 @@ def boxplot_aggregated(src, md_time, dir_path, fmt, domains, subtitle):
     # reorder the boxplots X axis if the domains argument is not null
     if domains:
         x_order = order_x_axis(list(set(src["domains"])), domains)
+        logging.info(f"The boxplots were ordered as in the domains file: {', '.join(domains)}.")
     else:
-        x_order = list(set(src["second partner domain"]))
+        x_order = list(set(src["domains"]))
+        logging.warning(f"No specific order provided for the boxplots.")
     ax = sns.boxplot(data= src, x="domains", y="contacts", hue="conditions", order=x_order,
                              palette={"insertions": "red", "duplications": "orange", "WT": "cyan"})
     sns.stripplot(data= src, x="domains", y="contacts", size=8, hue="conditions", marker="o",
