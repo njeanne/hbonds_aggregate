@@ -95,13 +95,15 @@ def aggregate_contacts(conditions, md_time, dir_path):
     :type md_time: int
     :param dir_path: the output directory path.
     :type dir_path: str
-    :return: the aggregated data for each frame and the conditions (in case ons condition is removed).
-    :rtype: pandas.DataFrame, pandas.DataFrame
+    :return: the aggregated data for each frame and the conditions (in case ony condition is removed) and the domain of
+    interest.
+    :rtype: pandas.DataFrame, str
     """
     pattern_sample = re.compile("outliers_(.+)_ORF1.csv")
     raw_dict = {}
     whole_domains = set()
     conditions_to_remove = []
+    roi_set = set()
     for _, row_condition in conditions.iterrows():
         by_condition = [fn for fn in os.listdir(row_condition["path"]) if fn.startswith("outliers") and fn.endswith(".csv")]
         if len(by_condition) == 0:
@@ -123,11 +125,19 @@ def aggregate_contacts(conditions, md_time, dir_path):
             df_current = pd.read_csv(os.path.join(row_condition["path"], item), sep=",")
             for _, row in df_current.iterrows():
                 whole_domains.add(row["second partner domain"])
+                roi_set.add(row["ROI partner domain"])
                 if row["second partner domain"] not in raw_dict[row_condition.iloc[0]][sample]:
                     raw_dict[row_condition.iloc[0]][sample][row["second partner domain"]] = row["number atoms contacts"]
                 else:
                     raw_dict[row_condition.iloc[0]][sample][row["second partner domain"]] += row["number atoms contacts"]
 
+    # check if there is only one region of interest making contacts in all the files used
+    if len(roi_set) == 1:
+        roi = list(roi_set)[0]
+    else:
+        logging.error(f"More than one domain in the columns 'ROI partner domain' ({', '.join(list(roi_set))}) of the "
+                      f"files in the directories provided by the input CSV file.")
+        sys.exit(1)
     # complete missing data in some domains
     for condition in raw_dict:
         for smp in raw_dict[condition]:
@@ -146,10 +156,10 @@ def aggregate_contacts(conditions, md_time, dir_path):
                 reorganized_dict["contacts"].append(raw_dict[condition][smp][domain])
 
     df_out = pd.DataFrame.from_dict(reorganized_dict)
-    out_path = os.path.join(dir_path, f"contacts_aggregated_{md_time}-ns.csv")
+    out_path = os.path.join(dir_path, f"contacts_aggregated_{roi}_{md_time}-ns.csv")
     df_out.to_csv(out_path, index=False)
     logging.info(f"Aggregated CSV file saved: {os.path.abspath(out_path)}")
-    return df_out
+    return df_out, roi
 
 
 def order_x_axis(labels, domains_ordered):
@@ -207,12 +217,14 @@ def order_x_axis(labels, domains_ordered):
     return ordered_labels
 
 
-def boxplot_aggregated(src, md_time, dir_path, fmt, domains, subtitle):
+def boxplot_aggregated(src, doi, md_time, dir_path, fmt, domains, subtitle):
     """
     Create the boxplots by conditions.
 
     :param src: the data source.
     :type src: pandas.DataFrame
+    :param doi: domain of interest, the domain in contacts with the other domains.
+    :type doi: str
     :param md_time: the molecular dynamics duration.
     :type md_time: int
     :param dir_path: the output directory path.
@@ -252,13 +264,14 @@ def boxplot_aggregated(src, md_time, dir_path, fmt, domains, subtitle):
         custom_labels.append(f"{label} ({len(sample_set)})")
     ax.legend(handles[:3], custom_labels, title="Condition")
 
-    plt.suptitle(f"Contacts by domain at {md_time} ns", fontsize="large", fontweight="bold")
+    plt.suptitle(f"Contacts by domain with the {doi} at {md_time} ns of molecular dynamics", fontsize="large",
+                 fontweight="bold")
     if subtitle:
         plt.title(subtitle)
     plt.xlabel("Domains", fontweight="bold")
     plt.ylabel(f"Number of contacts", fontweight="bold")
-    out_path_plot = os.path.join(dir_path, f"contacts_aggregated_{md_time}-ns.{fmt}")
     plot = ax.get_figure()
+    out_path_plot = os.path.join(dir_path, f"contacts_aggregated_{doi}_{md_time}-ns.{fmt}")
     plot.savefig(out_path_plot)
     logging.info(f"Aggregated contacts by condition: {os.path.abspath(out_path_plot)}")
 
@@ -330,5 +343,6 @@ if __name__ == "__main__":
 
     ordered_domains = get_domains(args.domains)
     data_conditions = get_conditions(args.input)
-    df_contacts = aggregate_contacts(data_conditions, args.md_time, args.out)
-    boxplot_aggregated(df_contacts, args.md_time, args.out, args.format, ordered_domains, args.subtitle)
+    df_contacts, domain_of_interest = aggregate_contacts(data_conditions, args.md_time, args.out)
+    boxplot_aggregated(df_contacts, domain_of_interest, args.md_time, args.out, args.format, ordered_domains,
+                       args.subtitle)
