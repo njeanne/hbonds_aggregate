@@ -93,7 +93,7 @@ def aggregate_contacts(conditions, md_time, dir_path):
             continue
         logging.info(f"Aggregating {len(by_condition)} file{'s' if len(by_condition) > 1 else ''} data for condition: "
                      f"{row_condition['condition']}")
-        raw_dict[row_condition[0]] = {}
+        raw_dict[row_condition.iloc[0]] = {}
         for item in sorted(by_condition):
             logging.info(f"\t\t- {item}")
             match_sample = pattern_sample.match(item)
@@ -102,14 +102,14 @@ def aggregate_contacts(conditions, md_time, dir_path):
             else:
                 logging.error(f"No sample found with the pattern \"{pattern_sample.pattern}\" in the file {item}")
                 sys.exit(1)
-            raw_dict[row_condition[0]][sample] = {}
+            raw_dict[row_condition.iloc[0]][sample] = {}
             df_current = pd.read_csv(os.path.join(row_condition["path"], item), sep=",")
             for _, row in df_current.iterrows():
                 whole_domains.add(row["second partner domain"])
-                if row["second partner domain"] not in raw_dict[row_condition[0]][sample]:
-                    raw_dict[row_condition[0]][sample][row["second partner domain"]] = row["number atoms contacts"]
+                if row["second partner domain"] not in raw_dict[row_condition.iloc[0]][sample]:
+                    raw_dict[row_condition.iloc[0]][sample][row["second partner domain"]] = row["number atoms contacts"]
                 else:
-                    raw_dict[row_condition[0]][sample][row["second partner domain"]] += row["number atoms contacts"]
+                    raw_dict[row_condition.iloc[0]][sample][row["second partner domain"]] += row["number atoms contacts"]
 
     # complete missing data in some domains
     for condition in raw_dict:
@@ -153,10 +153,13 @@ def boxplot_aggregated(src, md_time, dir_path, fmt, subtitle):
     ax = sns.boxplot(data= src, x="domains", y="contacts", hue="conditions",
                              palette={"insertions": "red", "duplications": "orange", "WT": "cyan"})
     sns.stripplot(data= src, x="domains", y="contacts", size=8, hue="conditions", marker="o",
-                                 linewidth=2, dodge=True, edgecolor="gray",
+                                 linewidth=2, dodge=True, edgecolor="auto",
                                  palette={"insertions": "darkred", "duplications": "chocolate", "WT": "blue"})
+    # modify the ticks for the X axis by adding new lines every 3 words
     x_labels = ax.get_xticklabels()
     new_x_labels = [re.sub(r'(\w+ \w+ \w+)( )',r'\1\n', x.get_text()) for x in x_labels]
+    # set the number of ticks for the X axis to avoid a matplotlib warning
+    ax.set_xticks([num_tick for num_tick in range(len(new_x_labels))])
     ax.set_xticklabels(new_x_labels)
     ax.set_xticklabels(x_labels, rotation=45, horizontalalignment="right")
 
