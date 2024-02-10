@@ -54,6 +54,23 @@ def create_log(path, level):
     return logging
 
 
+def get_domains(domains_file_path):
+    """
+    Extract the domains in order as they are set in the CSV file.
+    
+    :param domains_file_path: the path to the protein domains CSV file.
+    :type domains_file_path: str
+    :return: the ordered domains.
+    :rtype: list
+    """
+    domains = None
+    if domains_file_path:
+        df = pd.read_csv(domains_file_path, sep=",")
+        domains = list(df["domain"])
+    return domains
+
+
+
 def get_conditions(path):
     """
     Extract the conditions, the paths and the colors.
@@ -134,7 +151,63 @@ def aggregate_contacts(conditions, md_time, dir_path):
     logging.info(f"Aggregated CSV file saved: {os.path.abspath(out_path)}")
     return df_out
 
-def boxplot_aggregated(src, md_time, dir_path, fmt, subtitle):
+
+def order_x_axis(labels, domains_ordered):
+    """
+    Order the x axis values depending on the domains order.
+
+    :param labels: the labels.
+    :type labels: list
+    :param domains_ordered: the ordered domains on the protein.
+    :type domains_ordered: list
+    :return: the X axis labels ordered.
+    :rtype: list
+    """
+    ordered_labels = []
+    # get the annotation before any domains
+    for i in range(len(labels)):
+        if labels[i].startswith("before"):
+            ordered_labels.append(labels[i])
+            break
+    labels[:] = [x for x in labels if not x.startswith("before")]
+    logging.debug("Reordering the X axis:")
+    logging.debug(f"\tinitial X labels: {labels}")
+    logging.debug(f"\tbefore domains:")
+    logging.debug(f"\t\tnew X labels:\t\t{ordered_labels}")
+    logging.debug(f"\t\tinitial X labels:\t{labels}")
+    # get the domains as in the ordered domains and add the between domains
+    for dom in domains_ordered:
+        domain_index_in_labels = {}
+        logging.debug(f"\tdomain {dom}:")
+        for i in range(len(labels)):
+            if dom == labels[i]:
+                domain_index_in_labels["dom"] = i
+            elif labels[i].startswith(f"between {dom}"):
+                domain_index_in_labels["between"] = i
+        if "dom" in domain_index_in_labels:
+            ordered_labels.append(labels[domain_index_in_labels["dom"]])
+        if "between" in domain_index_in_labels:
+            ordered_labels.append(labels[domain_index_in_labels["between"]])
+        if "dom" in domain_index_in_labels:
+            labels[:] = [x for x in labels if not x == dom]
+        if "between" in domain_index_in_labels:
+            labels[:] = [x for x in labels if not x.startswith(f"between {dom}")]
+        logging.debug(f"\t\tnew X labels:\t\t{ordered_labels}")
+        logging.debug(f"\t\tinitial X labels:\t{labels}")
+    # get the annotation after all the domains
+    for i in range(len(labels)):
+        if labels[i].startswith("after"):
+            ordered_labels.append(labels[i])
+            break
+    labels[:] = [x for x in labels if not x.startswith("after")]
+    logging.debug(f"\tafter domains:")
+    logging.debug(f"\t\tnew X labels:\t\t{ordered_labels}")
+    logging.debug(f"\t\tinitial X labels:\t{labels}")
+    
+    return ordered_labels
+
+
+def boxplot_aggregated(src, md_time, dir_path, fmt, domains, subtitle):
     """
     Create the boxplots by conditions.
 
@@ -146,22 +219,28 @@ def boxplot_aggregated(src, md_time, dir_path, fmt, subtitle):
     :type dir_path: str
     :param fmt: the plot output format.
     :type fmt: str
+    :param domains: the ordered list of domains.
+    :type domains: list
     :param subtitle: the subtitle of the plot.
     :type subtitle: str
     """
     plt.figure(figsize=(15, 15))
-    ax = sns.boxplot(data= src, x="domains", y="contacts", hue="conditions",
+    # reorder the boxplots X axis if the domains argument is not null
+    if domains:
+        x_order = order_x_axis(list(set(src["domains"])), domains)
+    else:
+        x_order = list(set(src["second partner domain"]))
+    ax = sns.boxplot(data= src, x="domains", y="contacts", hue="conditions", order=x_order,
                              palette={"insertions": "red", "duplications": "orange", "WT": "cyan"})
     sns.stripplot(data= src, x="domains", y="contacts", size=8, hue="conditions", marker="o",
                                  linewidth=2, dodge=True, edgecolor="auto",
                                  palette={"insertions": "darkred", "duplications": "chocolate", "WT": "blue"})
-    # modify the ticks for the X axis by adding new lines every 3 words
-    x_labels = ax.get_xticklabels()
-    new_x_labels = [re.sub(r'(\w+ \w+ \w+)( )',r'\1\n', x.get_text()) for x in x_labels]
+
+    # modify the ticks labels for the X axis by adding new lines every 3 words
+    modified_x_labels = [re.sub(r'(\w+ \w+ \w+)( )',r'\1\n', x_label.get_text()) for x_label in ax.get_xticklabels()]
     # set the number of ticks for the X axis to avoid a matplotlib warning
-    ax.set_xticks([num_tick for num_tick in range(len(new_x_labels))])
-    ax.set_xticklabels(new_x_labels)
-    ax.set_xticklabels(x_labels, rotation=45, horizontalalignment="right")
+    ax.set_xticks([num_tick for num_tick in range(len(modified_x_labels))])
+    ax.set_xticklabels(modified_x_labels, rotation=45, horizontalalignment="right")
 
     # remove extra legend handles and add the count of samples by condition
     handles, labels = ax.get_legend_handles_labels()
@@ -207,6 +286,9 @@ if __name__ == "__main__":
     parser.add_argument("-o", "--out", required=True, type=str, help="the path to the output directory.")
     parser.add_argument("-t", "--md-time", required=True, type=int,
                         help="the molecular dynamics duration in nanoseconds.")
+    parser.add_argument("-d", "--domains", required=False, type=str,
+                        help="a sample CSV domains annotation file, to set the order of the protein domains on the X "
+                             "axis. If this option is not used, the domains will be displayed randomly.")
     parser.add_argument("-s", "--subtitle", required=False, type=str,
                         help="Free text used as a subtitle for the boxplots.")
     parser.add_argument("-x", "--format", required=False, default="svg",
@@ -244,6 +326,7 @@ if __name__ == "__main__":
     logging.info(f"CMD: {' '.join(sys.argv)}")
     logging.info(f"MD simulation time: {args.md_time} ns")
 
+    ordered_domains = get_domains(args.domains)
     data_conditions = get_conditions(args.input)
-    df = aggregate_contacts(data_conditions, args.md_time, args.out)
-    boxplot_aggregated(df, args.md_time, args.out, args.format, args.subtitle)
+    df_contacts = aggregate_contacts(data_conditions, args.md_time, args.out)
+    boxplot_aggregated(df_contacts, args.md_time, args.out, args.format, ordered_domains, args.subtitle)
