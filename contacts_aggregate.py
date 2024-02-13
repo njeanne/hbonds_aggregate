@@ -247,7 +247,7 @@ def boxplot_aggregated(src, doi, md_time, dir_path, fmt, domains, subtitle):
         logging.warning(f"No specific order provided for the boxplots.")
     ax = sns.boxplot(data= src, x="domains", y="contacts", hue="conditions", order=x_order,
                      palette={"insertions": "red", "duplications": "orange", "WT": "cyan"})
-    sns.stripplot(data= src, x="domains", y="contacts", size=8, hue="conditions", marker="o",
+    sns.stripplot(data= src, x="domains", y="contacts", size=8, hue="conditions", marker="o", order=x_order,
                   linewidth=2, dodge=True, palette={"insertions": "darkred", "duplications": "chocolate", "WT": "blue"})
     # add separators between conditions
     [ax.axvline(x + 0.5, alpha=0.2) for x in ax.get_xticks()]
