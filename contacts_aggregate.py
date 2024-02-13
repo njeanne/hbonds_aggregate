@@ -105,7 +105,8 @@ def aggregate_contacts(conditions, md_time, dir_path):
     conditions_to_remove = []
     roi_set = set()
     for _, row_condition in conditions.iterrows():
-        by_condition = [fn for fn in os.listdir(row_condition["path"]) if fn.startswith("outliers") and fn.endswith(".csv")]
+        by_condition = [fn for fn in os.listdir(row_condition["path"]) if
+                        fn.startswith("outliers") and fn.endswith(".csv")]
         if len(by_condition) == 0:
             conditions_to_remove.append(row_condition["condition"])
             logging.warning(f"Condition {row_condition['condition']}: no RMSD files, this condition is skipped.")
@@ -245,13 +246,15 @@ def boxplot_aggregated(src, doi, md_time, dir_path, fmt, domains, subtitle):
         x_order = list(set(src["domains"]))
         logging.warning(f"No specific order provided for the boxplots.")
     ax = sns.boxplot(data= src, x="domains", y="contacts", hue="conditions", order=x_order,
-                             palette={"insertions": "red", "duplications": "orange", "WT": "cyan"})
+                     palette={"insertions": "red", "duplications": "orange", "WT": "cyan"})
     sns.stripplot(data= src, x="domains", y="contacts", size=8, hue="conditions", marker="o",
-                                 linewidth=2, dodge=True, edgecolor="auto",
-                                 palette={"insertions": "darkred", "duplications": "chocolate", "WT": "blue"})
+                  linewidth=2, dodge=True, palette={"insertions": "darkred", "duplications": "chocolate", "WT": "blue"})
+    # add separators between conditions
+    [ax.axvline(x + 0.5, alpha=0.2) for x in ax.get_xticks()]
 
     # modify the ticks labels for the X axis by adding new lines every 3 words
-    modified_x_labels = [re.sub(r'(\w+ \w+ \w+)( )',r'\1\n', x_label.get_text()) for x_label in ax.get_xticklabels()]
+    modified_x_labels = [re.sub(r'(\w+ \w+ \w+)( )',
+                                r'\1\n', x_label.get_text()) for x_label in ax.get_xticklabels()]
     # set the number of ticks for the X axis to avoid a matplotlib warning
     ax.set_xticks([num_tick for num_tick in range(len(modified_x_labels))])
     ax.set_xticklabels(modified_x_labels, rotation=45, horizontalalignment="right")
