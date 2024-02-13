@@ -20,6 +20,7 @@ matplotlib.use('Agg')
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+from statannotations.Annotator import Annotator
 
 
 def create_log(path, level):
@@ -245,39 +246,61 @@ def boxplot_aggregated(src, doi, md_time, dir_path, fmt, domains, subtitle):
     else:
         x_order = list(set(src["domains"]))
         logging.warning(f"No specific order provided for the boxplots.")
-    ax = sns.boxplot(data= src, x="domains", y="contacts", hue="conditions", order=x_order,
-                     palette={"insertions": "red", "duplications": "orange", "WT": "cyan"})
-    sns.stripplot(data= src, x="domains", y="contacts", size=8, hue="conditions", marker="o", order=x_order,
-                  linewidth=2, dodge=True, palette={"insertions": "darkred", "duplications": "chocolate", "WT": "blue"})
-    # add separators between conditions
-    [ax.axvline(x + 0.5, alpha=0.2) for x in ax.get_xticks()]
 
-    # modify the ticks labels for the X axis by adding new lines every 3 words
-    modified_x_labels = [re.sub(r'(\w+ \w+ \w+)( )',
-                                r'\1\n', x_label.get_text()) for x_label in ax.get_xticklabels()]
-    # set the number of ticks for the X axis to avoid a matplotlib warning
-    ax.set_xticks([num_tick for num_tick in range(len(modified_x_labels))])
-    ax.set_xticklabels(modified_x_labels, rotation=45, horizontalalignment="right")
+    # create the statistical pairs annotations
+    boxplot_pairs = []
+    conditions = list(set(src["conditions"]))
+    for domain in x_order:
+        for i in range(0, len(conditions) - 1):
+            for j in range(i + 1, len(conditions)):
+                boxplot_pairs.append(((domain, conditions[i]), (domain, conditions[j])))
 
-    # remove extra legend handles and add the count of samples by condition
-    handles, labels = ax.get_legend_handles_labels()
-    custom_labels = []
-    for label in labels[:3]:
-        sample_set = set(src[src["conditions"] == label]["sample"])
-        custom_labels.append(f"{label} ({len(sample_set)})")
-    ax.legend(handles[:3], custom_labels, title="Condition")
+    # creating the plotting parameters
+    plotting_parameters = {
+       "data": src,
+        "x": "domains",
+        "y": "contacts",
+        "hue": "conditions",
+        "order": x_order
+    }
 
-    plt.suptitle(f"Contacts by domain with the {doi} at {md_time} ns of molecular dynamics", fontsize="large",
-                 fontweight="bold")
-    if subtitle:
-        plt.title(subtitle)
-    plt.xlabel("Domains", fontweight="bold")
-    plt.ylabel(f"Number of contacts", fontweight="bold")
-    plot = ax.get_figure()
-    out_path_plot = os.path.join(dir_path, f"contacts_aggregated_{doi}_{md_time}-ns.{fmt}")
-    plot.savefig(out_path_plot)
-    logging.info(f"Aggregated contacts by condition: {os.path.abspath(out_path_plot)}")
+    # create the plot
+    with sns.plotting_context():
+        ax = sns.boxplot(**plotting_parameters, palette={"insertions": "red", "duplications": "orange", "WT": "cyan"})
+        sns.stripplot(**plotting_parameters, size=8, marker="o", linewidth=2, dodge=True,
+                      palette={"insertions": "darkred", "duplications": "chocolate", "WT": "blue"})
+        annotator = Annotator(ax, boxplot_pairs, **plotting_parameters)
+        annotator.configure(test="t-test_ind", text_format="star", hide_non_significant=True)
+        annotator.apply_and_annotate()
 
+        # add separators between conditions
+        [ax.axvline(x + 0.5, alpha=0.2) for x in ax.get_xticks()]
+
+        # modify the ticks labels for the X axis by adding new lines every 3 words
+        modified_x_labels = [re.sub(r'(\w+ \w+ \w+)( )',
+                                    r'\1\n', x_label.get_text()) for x_label in ax.get_xticklabels()]
+        # set the number of ticks for the X axis to avoid a matplotlib warning
+        ax.set_xticks([num_tick for num_tick in range(len(modified_x_labels))])
+        ax.set_xticklabels(modified_x_labels, rotation=45, horizontalalignment="right")
+
+        # remove extra legend handles and add the count of samples by condition
+        handles, labels = ax.get_legend_handles_labels()
+        custom_labels = []
+        for label in labels[:3]:
+            sample_set = set(src[src["conditions"] == label]["sample"])
+            custom_labels.append(f"{label} ({len(sample_set)})")
+        ax.legend(handles[:3], custom_labels, title="Condition")
+
+        plt.suptitle(f"Contacts by domain with the {doi} at {md_time} ns of molecular dynamics", fontsize="large",
+                     fontweight="bold")
+        if subtitle:
+            plt.title(subtitle)
+        plt.xlabel("Domains", fontweight="bold")
+        plt.ylabel(f"Number of contacts", fontweight="bold")
+        plot = ax.get_figure()
+        out_path_plot = os.path.join(dir_path, f"contacts_aggregated_{doi}_{md_time}-ns.{fmt}")
+        plot.savefig(out_path_plot)
+        logging.info(f"Aggregated contacts by condition: {os.path.abspath(out_path_plot)}")
 
 
 if __name__ == "__main__":

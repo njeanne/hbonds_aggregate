@@ -37,7 +37,16 @@ conda deactivate
 ## Outputs
 
 The script outputs are:
-- boxplots of the contacts by conditions and domains:
+- boxplots of the contacts by conditions and domains. Student statistical tests (t-tests) are performed for each domain between each pair of conditions.
+Only the significant p-values are annotated:
+```shell
+p-value annotation legend:
+      ns: 5.00e-02 < p <= 1.00e+00
+       *: 1.00e-02 < p <= 5.00e-02
+      **: 1.00e-03 < p <= 1.00e-02
+     ***: 1.00e-04 < p <= 1.00e-03
+    ****: p <= 1.00e-04
+```
 
 ![contacts heatmap](doc/_static/boxplots.svg)
 
