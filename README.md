@@ -22,14 +22,19 @@ conda activate python3
 ## Usage
 
 The script can be tested with the test data provided in the `data` directory, which contains a CSV file describing the 
-different conditions and the location of the directory containing the CSV output files from the `plot_contacts.py` 
-script. 
+different conditions and the location of the directory containing the CSV output files from the [plot_contacts.py](https://github.com/njeanne/plot_contacts) 
+script.
+
+An optional argument `--domain` can be used, which is the path to a CSV file describing the domains of a protein. 
+The order of the domains will be used to order the boxplots in the plot.
+
 The commands to use the script are:
 
 ```shell script
 conda activate python3
 
-./contacts_aggregate.py --md-time 1002 --subtitle "annotations Koonin" --out results data/conditions.csv
+./contacts_aggregate.py --md-time 1002 --domain data/sample_domains.csv \
+--subtitle "Annotations Koonin" --out results data/conditions.csv
 
 conda deactivate
 ```
