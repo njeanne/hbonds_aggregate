@@ -1,4 +1,4 @@
-name: python3
+name: contacts_aggregate
 channels:
   - bioconda
   - conda-forge
