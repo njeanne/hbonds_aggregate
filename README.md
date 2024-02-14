@@ -9,14 +9,14 @@ The input CSV data are produced by the [plot_contacts](https://github.com/njeann
 ## Conda environment
 
 A [conda](https://docs.conda.io/projects/conda/en/latest/index.html) YAML environment file is provided: 
-`conda_env/python3_env.yml`. The file contains all the dependencies to run the script.
+`conda_env/contacts_aggregate_env.yml`. The file contains all the dependencies to run the script.
 The conda environment is generated using the command:
 ```shell script
 # create the environment
-conda env create -f conda_env/python3_env.yml
+conda env create -f conda_env/contacts_aggregate_env.yml
 
 # activate the environment
-conda activate python3
+conda activate contacts_aggregate
 ```
 
 ## Usage
@@ -31,7 +31,7 @@ The order of the domains will be used to order the boxplots in the plot.
 The commands to use the script are:
 
 ```shell script
-conda activate python3
+conda activate contacts_aggregate
 
 ./contacts_aggregate.py --md-time 1002 --domain data/sample_domains.csv \
 --subtitle "Annotations Koonin" --out results data/conditions.csv
