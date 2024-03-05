@@ -164,7 +164,7 @@ def aggregate_contacts(conditions, md_time, dir_path):
                 reorganized_dict["contacts"].append(raw_dict[condition][smp][domain])
 
     df_out = pd.DataFrame.from_dict(reorganized_dict)
-    out_path = os.path.join(dir_path, f"contacts_aggregated_{roi}_{md_time}-ns.csv")
+    out_path = os.path.join(dir_path, f"contacts_aggregated_{roi.lower().replace(' ', '-')}_{md_time}-ns.csv")
     df_out.to_csv(out_path, index=False)
     logging.info(f"Aggregated CSV file saved: {os.path.abspath(out_path)}")
     return df_out, roi
@@ -172,7 +172,7 @@ def aggregate_contacts(conditions, md_time, dir_path):
 
 def order_x_axis(labels, domains_ordered):
     """
-    Order the x axis values depending on the domains order.
+    Order the x-axis values depending on the domains order.
 
     :param labels: the labels.
     :type labels: list
@@ -225,14 +225,14 @@ def order_x_axis(labels, domains_ordered):
     return ordered_labels
 
 
-def boxplot_aggregated(src, doi, md_time, dir_path, fmt, domains, subtitle):
+def boxplot_aggregated(src, roi, md_time, dir_path, fmt, domains, subtitle):
     """
     Create the boxplots by conditions.
 
     :param src: the data source.
     :type src: pandas.DataFrame
-    :param doi: domain of interest, the domain in contacts with the other domains.
-    :type doi: str
+    :param roi: region of interest, the region in contact with the other domains.
+    :type roi: str
     :param md_time: the molecular dynamics duration.
     :type md_time: int
     :param dir_path: the output directory path.
@@ -297,14 +297,14 @@ def boxplot_aggregated(src, doi, md_time, dir_path, fmt, domains, subtitle):
             custom_labels.append(f"{label} ({len(sample_set)})")
         ax.legend(handles[:3], custom_labels, title="Condition")
 
-        plt.suptitle(f"Contacts by domain with the {doi} at {md_time} ns of molecular dynamics", fontsize="large",
+        plt.suptitle(f"Contacts by domain with the {roi} at {md_time} ns of molecular dynamics", fontsize="large",
                      fontweight="bold")
         if subtitle:
             plt.title(subtitle)
         plt.xlabel("Domains", fontweight="bold")
         plt.ylabel(f"Number of contacts", fontweight="bold")
         plot = ax.get_figure()
-        out_path_plot = os.path.join(dir_path, f"contacts_aggregated_{doi.lower().replace(' ', '-')}_"
+        out_path_plot = os.path.join(dir_path, f"contacts_aggregated_{roi.lower().replace(' ', '-')}_"
                                                f"{md_time}-ns.{fmt}")
         plot.savefig(out_path_plot)
         logging.info(f"Aggregated contacts by condition: {os.path.abspath(out_path_plot)}")
