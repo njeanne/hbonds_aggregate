@@ -1,3 +1,4 @@
-insertions,data/plot_contacts_outputs/insertions,#fc030b
-duplications,data/plot_contacts_outputs/duplications,#eb8c34
-WT,data/plot_contacts_outputs/WT,#0303fc
+condition,path,boxplot color,dot color
+insertions,data/plot_contacts_outputs/insertions,#fc030b,#700101
+duplications,data/plot_contacts_outputs/duplications,#eb8c34,#704001
+WT,data/plot_contacts_outputs/WT,#0303fc,#017070

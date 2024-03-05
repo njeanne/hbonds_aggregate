@@ -72,21 +72,33 @@ def get_domains(domains_file_path):
 
 
 
-def get_conditions(path):
+def extract_colors(path, grouped):
     """
-    Extract the conditions, the paths and the colors.
+    Extract the colors by conditions for the boxplots and the dots.
 
     :param path: the path to the CSV file.
     :type path: str
-    :return: the conditions.
-    :rtype: pd.DataFrame
+    :param grouped: the grouped conditions.
+    :type grouped: list
+    :return: the colors to use.
+    :rtype: dict
     """
-    df = pd.read_csv(path, sep=",", header=None)
-    df.columns = ["condition", "path", "color"]
-    return df
+    colors_by_condition = {"boxplots": {}, "dots": {}}
+    first_item_group_not_stored = True
+    df = pd.read_csv(path, sep=",", header=0)
+    for _, row in df.iterrows():
+        if grouped and row["condition"] in grouped:
+            if first_item_group_not_stored:
+                colors_by_condition["boxplots"]["/".join(grouped)] = row["boxplot color"]
+                colors_by_condition["dots"]["/".join(grouped)] = row["dot color"]
+                first_item_group_not_stored = False
+        else:
+            colors_by_condition["boxplots"][row["condition"]] = row["boxplot color"]
+            colors_by_condition["dots"][row["condition"]] = row["dot color"]
+    return colors_by_condition
 
 
-def aggregate_contacts(conditions, md_time, dir_path):
+def aggregate_contacts(conditions, md_time, dir_path, grouped):
     """
     Extract the number of contacts by region for each sample in a condition.
 
@@ -96,6 +108,8 @@ def aggregate_contacts(conditions, md_time, dir_path):
     :type md_time: int
     :param dir_path: the output directory path.
     :type dir_path: str
+    :param grouped: the grouped conditions.
+    :type grouped: list
     :return: the aggregated data for each frame and the conditions (in case ony condition is removed) and the domain of
     interest.
     :rtype: pandas.DataFrame, str
@@ -106,6 +120,7 @@ def aggregate_contacts(conditions, md_time, dir_path):
     conditions_to_remove = []
     roi_set = set()
     for _, row_condition in conditions.iterrows():
+
         by_condition = []
         try:
             for fn in os.listdir(row_condition["path"]):
@@ -120,7 +135,15 @@ def aggregate_contacts(conditions, md_time, dir_path):
             continue
         logging.info(f"Aggregating {len(by_condition)} file{'s' if len(by_condition) > 1 else ''} data for condition: "
                      f"{row_condition['condition']}")
-        raw_dict[row_condition.iloc[0]] = {}
+
+        # check if the condition belongs to the grouped conditions
+        if grouped and row_condition.iloc[0] in grouped:
+            condition = "/".join(grouped)
+        else:
+            condition = row_condition.iloc[0]
+        if condition not in raw_dict:
+            raw_dict[condition] = {}
+
         for item in sorted(by_condition):
             logging.info(f"\t\t- {item}")
             match_sample = pattern_sample.match(item)
@@ -129,15 +152,15 @@ def aggregate_contacts(conditions, md_time, dir_path):
             else:
                 logging.error(f"No sample found with the pattern \"{pattern_sample.pattern}\" in the file {item}")
                 sys.exit(1)
-            raw_dict[row_condition.iloc[0]][sample] = {}
+            raw_dict[condition][sample] = {}
             df_current = pd.read_csv(os.path.join(row_condition["path"], item), sep=",")
             for _, row in df_current.iterrows():
                 whole_domains.add(row["second partner domain"])
                 roi_set.add(row["ROI partner domain"])
-                if row["second partner domain"] not in raw_dict[row_condition.iloc[0]][sample]:
-                    raw_dict[row_condition.iloc[0]][sample][row["second partner domain"]] = row["number atoms contacts"]
+                if row["second partner domain"] not in raw_dict[condition][sample]:
+                    raw_dict[condition][sample][row["second partner domain"]] = row["number atoms contacts"]
                 else:
-                    raw_dict[row_condition.iloc[0]][sample][row["second partner domain"]] += row["number atoms contacts"]
+                    raw_dict[condition][sample][row["second partner domain"]] += row["number atoms contacts"]
 
     # check if there is only one region of interest making contacts in all the files used
     if len(roi_set) == 1:
@@ -225,7 +248,7 @@ def order_x_axis(labels, domains_ordered):
     return ordered_labels
 
 
-def boxplot_aggregated(src, roi, md_time, dir_path, fmt, domains, subtitle):
+def boxplot_aggregated(src, roi, colors_plot, md_time, dir_path, fmt, domains, subtitle):
     """
     Create the boxplots by conditions.
 
@@ -233,6 +256,8 @@ def boxplot_aggregated(src, roi, md_time, dir_path, fmt, domains, subtitle):
     :type src: pandas.DataFrame
     :param roi: region of interest, the region in contact with the other domains.
     :type roi: str
+    :param colors_plot: the colors to use.
+    :type colors_plot: dict
     :param md_time: the molecular dynamics duration.
     :type md_time: int
     :param dir_path: the output directory path.
@@ -272,9 +297,8 @@ def boxplot_aggregated(src, roi, md_time, dir_path, fmt, domains, subtitle):
 
     # create the plot
     with sns.plotting_context():
-        ax = sns.boxplot(**plotting_parameters, palette={"insertions": "red", "duplications": "orange", "WT": "cyan"})
-        sns.stripplot(**plotting_parameters, size=8, marker="o", linewidth=2, dodge=True,
-                      palette={"insertions": "darkred", "duplications": "chocolate", "WT": "blue"})
+        ax = sns.boxplot(**plotting_parameters, palette=colors_plot["boxplots"])
+        sns.stripplot(**plotting_parameters, size=8, marker="o", linewidth=2, dodge=True, palette=colors_plot["dots"])
         annotator = Annotator(ax, boxplot_pairs, **plotting_parameters)
         annotator.configure(test="t-test_welch", text_format="star", hide_non_significant=True)
         annotator.apply_and_annotate()
@@ -292,7 +316,8 @@ def boxplot_aggregated(src, roi, md_time, dir_path, fmt, domains, subtitle):
         # remove extra legend handles and add the count of samples by condition
         handles, labels = ax.get_legend_handles_labels()
         custom_labels = []
-        for label in labels[:3]:
+        number_of_labels = len(colors_plot["boxplots"])
+        for label in labels[:number_of_labels]:
             sample_set = set(src[src["conditions"] == label]["sample"])
             custom_labels.append(f"{label} ({len(sample_set)})")
         ax.legend(handles[:3], custom_labels, title="Condition")
@@ -334,6 +359,9 @@ if __name__ == "__main__":
     parser.add_argument("-o", "--out", required=True, type=str, help="the path to the output directory.")
     parser.add_argument("-t", "--md-time", required=True, type=int,
                         help="the molecular dynamics duration in nanoseconds.")
+    parser.add_argument("-g", "--group", required=False, nargs="+", type=str,
+                        help="a list of conditions, separated by spaces, to group as they appear in the first column "
+                             "of the input file. The color used will be the color of the first condition.")
     parser.add_argument("-d", "--domains", required=False, type=str,
                         help="a sample CSV domains annotation file, to set the order of the protein domains on the X "
                              "axis. If this option is not used, the domains will be displayed randomly.")
@@ -375,8 +403,8 @@ if __name__ == "__main__":
     logging.info(f"MD simulation time: {args.md_time} ns")
 
     ordered_domains = get_domains(args.domains)
-    print(ordered_domains)
-    data_conditions = get_conditions(args.input)
-    df_contacts, domain_of_interest = aggregate_contacts(data_conditions, args.md_time, args.out)
-    boxplot_aggregated(df_contacts, domain_of_interest, args.md_time, args.out, args.format, ordered_domains,
+    data_conditions = pd.read_csv(args.input, sep=",", header=0)
+    colors = extract_colors(args.input, args.group)
+    df_contacts, domain_of_interest = aggregate_contacts(data_conditions, args.md_time, args.out, args.group)
+    boxplot_aggregated(df_contacts, domain_of_interest, colors, args.md_time, args.out, args.format, ordered_domains,
                        args.subtitle)

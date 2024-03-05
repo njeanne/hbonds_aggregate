@@ -25,11 +25,19 @@ The script can be tested with the test data provided in the `data` directory, wh
 different conditions and the location of the directory containing the CSV output files from the [plot_contacts.py](https://github.com/njeanne/plot_contacts) 
 script.
 
-An optional argument `--domain` can be used, which is the path to a CSV file describing the domains of a protein. 
-The order of the domains will be used to order the boxplots in the plot.
+The input CSV file must be a comma separated file with a header as in the following example:
 
-The commands to use the script are:
+| condition    | path | boxplot color | dot color |
+|--------------|---|---|---|
+| insertions   | data/plot_contacts_outputs/insertions | #fc030b | #700101 |
+| duplications | data/plot_contacts_outputs/duplications | #eb8c34 | #704001 |
+| WT           | data/plot_contacts_outputs/WT | #0303fc | #017070 |
 
+Some optional arguments can be used:
+- `--domain`: which is the path to a CSV file describing the domains of a protein. The order of the domains will be used to order the boxplots in the plot.
+- `--group`: to group some conditions of the input CSV file.
+
+The command to use the 3 conditions of the input CSV file is:
 ```shell script
 conda activate contacts_aggregate
 
@@ -38,6 +46,17 @@ conda activate contacts_aggregate
 
 conda deactivate
 ```
+
+The command to group *insertions* and *duplications* is:
+```shell script
+conda activate contacts_aggregate
+
+./contacts_aggregate.py --group insertions duplications --md-time 1002 --domain data/sample_domains.csv \
+--subtitle "Annotations Koonin" --out results data/conditions.csv
+
+conda deactivate
+```
+
 
 ## Outputs
 
@@ -53,6 +72,10 @@ p-value annotation legend:
     ****: p <= 1.00e-04
 ```
 
-![contacts heatmap](doc/_static/boxplots.svg)
+For the command using the 3 conditions separately:
+![contacts heatmap](doc/_static/boxplots_3-classes.svg)
+
+For the command grouping *insertions* and *duplications*:
+![contacts heatmap](doc/_static/boxplots_2-classes.svg)
 
 - a CSV file of the contacts by condition and domain.
