@@ -106,8 +106,14 @@ def aggregate_contacts(conditions, md_time, dir_path):
     conditions_to_remove = []
     roi_set = set()
     for _, row_condition in conditions.iterrows():
-        by_condition = [fn for fn in os.listdir(row_condition["path"]) if
-                        fn.startswith("outliers") and fn.endswith(".csv")]
+        by_condition = []
+        try:
+            for fn in os.listdir(row_condition["path"]):
+                if fn.startswith("outliers") and fn.endswith(".csv"):
+                    by_condition.append(fn)
+        except FileNotFoundError as exc:
+            logging.error(exc, exc_info=True)
+            sys.exit(1)
         if len(by_condition) == 0:
             conditions_to_remove.append(row_condition["condition"])
             logging.warning(f"Condition {row_condition['condition']}: no RMSD files, this condition is skipped.")
@@ -270,7 +276,7 @@ def boxplot_aggregated(src, doi, md_time, dir_path, fmt, domains, subtitle):
         sns.stripplot(**plotting_parameters, size=8, marker="o", linewidth=2, dodge=True,
                       palette={"insertions": "darkred", "duplications": "chocolate", "WT": "blue"})
         annotator = Annotator(ax, boxplot_pairs, **plotting_parameters)
-        annotator.configure(test="t-test_ind", text_format="star", hide_non_significant=True)
+        annotator.configure(test="t-test_welch", text_format="star", hide_non_significant=True)
         annotator.apply_and_annotate()
 
         # add separators between conditions
@@ -298,7 +304,8 @@ def boxplot_aggregated(src, doi, md_time, dir_path, fmt, domains, subtitle):
         plt.xlabel("Domains", fontweight="bold")
         plt.ylabel(f"Number of contacts", fontweight="bold")
         plot = ax.get_figure()
-        out_path_plot = os.path.join(dir_path, f"contacts_aggregated_{doi}_{md_time}-ns.{fmt}")
+        out_path_plot = os.path.join(dir_path, f"contacts_aggregated_{doi.lower().replace(' ', '-')}_"
+                                               f"{md_time}-ns.{fmt}")
         plot.savefig(out_path_plot)
         logging.info(f"Aggregated contacts by condition: {os.path.abspath(out_path_plot)}")
 
@@ -368,6 +375,7 @@ if __name__ == "__main__":
     logging.info(f"MD simulation time: {args.md_time} ns")
 
     ordered_domains = get_domains(args.domains)
+    print(ordered_domains)
     data_conditions = get_conditions(args.input)
     df_contacts, domain_of_interest = aggregate_contacts(data_conditions, args.md_time, args.out)
     boxplot_aggregated(df_contacts, domain_of_interest, args.md_time, args.out, args.format, ordered_domains,
