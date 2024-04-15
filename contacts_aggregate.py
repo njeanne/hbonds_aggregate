@@ -7,7 +7,7 @@ Created on 01 Feb. 2024
 __author__ = "Nicolas JEANNE"
 __copyright__ = "GNU General Public License"
 __email__ = "jeanne.n@chu-toulouse.fr"
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 import argparse
 import logging
@@ -161,14 +161,14 @@ def aggregate_contacts(conditions, md_time, dir_path, grouped):
                     raw_dict[condition][sample][row["second partner domain"]] = row["number atoms contacts"]
                 else:
                     raw_dict[condition][sample][row["second partner domain"]] += row["number atoms contacts"]
+            # check if there is only one region of interest making contacts in each of the files used
+            if len(roi_set) > 1:
+                logging.error(f"For {sample}: more than one domain in the columns 'ROI partner domain' "
+                              f"({', '.join(list(roi_set))}) of the outliers contact CSV file.")
+                sys.exit(1)
 
-    # check if there is only one region of interest making contacts in all the files used
-    if len(roi_set) == 1:
-        roi = list(roi_set)[0]
-    else:
-        logging.error(f"More than one domain in the columns 'ROI partner domain' ({', '.join(list(roi_set))}) of the "
-                      f"files in the directories provided by the input CSV file.")
-        sys.exit(1)
+    roi = list(roi_set)[0]
+
     # complete missing data in some domains
     for condition in raw_dict:
         for smp in raw_dict[condition]:
