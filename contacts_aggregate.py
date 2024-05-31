@@ -7,7 +7,7 @@ Created on 01 Feb. 2024
 __author__ = "Nicolas JEANNE"
 __copyright__ = "GNU General Public License"
 __email__ = "jeanne.n@chu-toulouse.fr"
-__version__ = "1.0.1"
+__version__ = "1.1.0"
 
 import argparse
 import logging
@@ -17,8 +17,10 @@ import sys
 
 import matplotlib
 matplotlib.use('Agg')
+import numpy
 import pandas as pd
 import matplotlib.pyplot as plt
+from scipy.stats import mannwhitneyu
 import seaborn as sns
 from statannotations.Annotator import Annotator
 
@@ -193,9 +195,59 @@ def aggregate_contacts(conditions, md_time, dir_path, grouped):
     return df_out, roi
 
 
-def order_x_axis(labels, domains_ordered):
+def compute_stats(src, domains, out_path):
     """
-    Order the x-axis values depending on the domains order.
+    Test the different domains contacts with the region of interest between the different conditions.
+    A Mann-Whitney U test is performed with the null hypothesis is that the condition 1 group is greater than the
+    condition 2 group.
+
+    :param src: the contacts dataframe.
+    :type src: pandas.DataFrame
+    :param domains: the domains.
+    :type domains: list
+    :param out_path: the output file path.
+    :type out_path: str
+    """
+    logging.info("Computing Mann-Whitney U test with a null hypothesis group 1 is greater than group 2:")
+    data = {"contact with": [], "group 1": [], "group 2": [], "p-value": [], "statistic": [], "test":[], "H0": [],
+            "comment": []}
+    # get the conditions as a list, for loop performed to keep the conditions' order
+    conditions = []
+    for condition in src["conditions"]:
+        if condition not in conditions:
+            conditions.append(condition)
+    # extract the data and compute the statistic test
+    for domain in domains:
+        domain_rows = src[src["domains"] == domain]
+        for i in range(0, len(conditions) - 1):
+            for j in range(i + 1, len(conditions)):
+                data["contact with"].append(domain)
+                data["test"].append("Mann-Whitney U")
+                data["group 1"].append(conditions[i])
+                data["group 2"].append(conditions[j])
+                try:
+                    test = mannwhitneyu(x=domain_rows["contacts"][domain_rows["conditions"] == conditions[i]],
+                                        y=domain_rows["contacts"][domain_rows["conditions"] == conditions[j]],
+                                        alternative="greater")
+                    data["p-value"].append(test.pvalue)
+                    data["statistic"].append(test.statistic)
+                    data["comment"].append("")
+                except ValueError as exc:
+                    txt = "All the numbers are identical in the Mann-Whitney U test"
+                    data["p-value"].append("N/A")
+                    data["statistic"].append("N/A")
+                    data["comment"].append(txt)
+                    logging.warning(f"\t{txt} for the domain {domain} between {conditions[i]} and {conditions[j]}. "
+                                    f"The test output is set to N/A.")
+                data["H0"].append(f"{conditions[i]} is greater than {conditions[j]}")
+    pd.DataFrame.from_dict(data).to_csv(out_path, index=False)
+    logging.info(f"\tStatistics file saved: {out_path}")
+
+
+def update_domains_order(labels, domains_ordered):
+    """
+    Update and order the domains by adding before, between and after annotations if some contacts are present outside
+    the domains.
 
     :param labels: the labels.
     :type labels: list
@@ -204,18 +256,18 @@ def order_x_axis(labels, domains_ordered):
     :return: the X axis labels ordered.
     :rtype: list
     """
-    ordered_labels = []
+    updated_labels = []
     # get the annotation before any domains
     for i in range(len(labels)):
         if labels[i].startswith("before"):
-            ordered_labels.append(labels[i])
+            updated_labels.append(labels[i])
             break
     labels[:] = [x for x in labels if not x.startswith("before")]
-    logging.debug("Reordering the X axis:")
-    logging.debug(f"\tinitial X labels: {labels}")
+    logging.debug("Updating the labels:")
+    logging.debug(f"\tinitial labels: {labels}")
     logging.debug(f"\tbefore domains:")
-    logging.debug(f"\t\tnew X labels:\t\t{ordered_labels}")
-    logging.debug(f"\t\tinitial X labels:\t{labels}")
+    logging.debug(f"\t\tnew labels:\t\t{updated_labels}")
+    logging.debug(f"\t\tinitial labels:\t{labels}")
     # get the domains as in the ordered domains and add the between domains
     for dom in domains_ordered:
         domain_index_in_labels = {}
@@ -226,27 +278,56 @@ def order_x_axis(labels, domains_ordered):
             elif labels[i].startswith(f"between {dom}"):
                 domain_index_in_labels["between"] = i
         if "dom" in domain_index_in_labels:
-            ordered_labels.append(labels[domain_index_in_labels["dom"]])
+            updated_labels.append(labels[domain_index_in_labels["dom"]])
         if "between" in domain_index_in_labels:
-            ordered_labels.append(labels[domain_index_in_labels["between"]])
+            updated_labels.append(labels[domain_index_in_labels["between"]])
         if "dom" in domain_index_in_labels:
             labels[:] = [x for x in labels if not x == dom]
         if "between" in domain_index_in_labels:
             labels[:] = [x for x in labels if not x.startswith(f"between {dom}")]
-        logging.debug(f"\t\tnew X labels:\t\t{ordered_labels}")
-        logging.debug(f"\t\tinitial X labels:\t{labels}")
+        logging.debug(f"\t\tnew labels:\t\t{updated_labels}")
+        logging.debug(f"\t\tinitial labels:\t{labels}")
     # get the annotation after all the domains
     for i in range(len(labels)):
         if labels[i].startswith("after"):
-            ordered_labels.append(labels[i])
+            updated_labels.append(labels[i])
             break
     labels[:] = [x for x in labels if not x.startswith("after")]
     logging.debug(f"\tafter domains:")
-    logging.debug(f"\t\tnew X labels:\t\t{ordered_labels}")
-    logging.debug(f"\t\tinitial X labels:\t{labels}")
+    logging.debug(f"\t\tnew labels:\t\t{updated_labels}")
+    logging.debug(f"\t\tinitial labels:\t{labels}")
     
-    return ordered_labels
+    return updated_labels
 
+
+def all_values_equals_correction(df, pairs_list):
+    """
+    If the values between two conditions are the sames, the Mann-Whitney test cannot be performed, a small variation is
+    added to the first value of the first condition.
+
+    :param df: the contacts dataframe.
+    :type df: pandas.DataFrame
+    :param pairs_list: the list of two tuples (domains and condition) to test with the Mann-Whitney test.
+    :type pairs_list: list
+    :return: the updated contacts dataframe.
+    :rtype: pandas.DataFrame
+    """
+    for pairs in pairs_list:
+        pair_1 = set(df["contacts"][(df["domains"] == pairs[0][0]) & (df["conditions"] == pairs[0][1])])
+        pair_2 = set(df["contacts"][(df["domains"] == pairs[1][0]) & (df["conditions"] == pairs[1][1])])
+        if len(pair_1) == 1 and len(pair_1) == len(pair_2):
+            # add 0.00000001 to the first value of the first condition
+            # to be able to perform the Mann-Withney test if all the values are the same, see:
+            # https://stackoverflow.com/questions/54212583/change-1st-row-of-a-dataframe-based-on-a-condition-in-pandas
+            # for explanations
+            mask = (df["domains"] == pairs[0][0]) & (df["conditions"] == pairs[0][1])
+            idx = mask.idxmax() if mask.any() else numpy.repeat(False, len(df))
+            previous_value = df.loc[idx, "contacts"]
+            df.loc[idx, "contacts"] = previous_value + 0.00000001
+            logging.warning(f"\tdomain \"{pairs[0][0]}\" conditions \"{pairs[0][1]}\" and \"{pairs[1][1]}\" have the same values "
+                            f"{previous_value}. The first value of the condition \"{pairs[0][1]}\" is set to "
+                            f"{df.loc[idx, 'contacts']} to perform the Mann-Withney test.")
+    return df
 
 def boxplot_aggregated(src, roi, colors_plot, md_time, dir_path, fmt, domains, subtitle):
     """
@@ -264,35 +345,30 @@ def boxplot_aggregated(src, roi, colors_plot, md_time, dir_path, fmt, domains, s
     :type dir_path: str
     :param fmt: the plot output format.
     :type fmt: str
-    :param domains: the ordered list of domains.
+    :param domains: the updated and ordered list of domains.
     :type domains: list
     :param subtitle: the subtitle of the plot.
     :type subtitle: str
     """
+    logging.info("Plotting the aggregated contacts by condition and Mann-Whitney two-sided test:")
     plt.figure(figsize=(15, 15))
-    # reorder the boxplots X axis if the domains argument is not null
-    if domains:
-        x_order = order_x_axis(list(set(src["domains"])), domains)
-        logging.info(f"The boxplots were ordered as in the domains file: {', '.join(domains)}.")
-    else:
-        x_order = list(set(src["domains"]))
-        logging.warning(f"No specific order provided for the boxplots.")
-
     # create the statistical pairs annotations
     boxplot_pairs = []
     conditions = list(set(src["conditions"]))
-    for domain in x_order:
+    for domain in domains:
         for i in range(0, len(conditions) - 1):
             for j in range(i + 1, len(conditions)):
                 boxplot_pairs.append(((domain, conditions[i]), (domain, conditions[j])))
-
+    # for a domain, if all the values for both tested conditions are equals, add a little variation to the first value
+    # of the first condition to be able to perform a Mann-Whitney test
+    src = all_values_equals_correction(src, boxplot_pairs)
     # creating the plotting parameters
     plotting_parameters = {
        "data": src,
         "x": "domains",
         "y": "contacts",
         "hue": "conditions",
-        "order": x_order
+        "order": domains
     }
 
     # create the plot
@@ -300,7 +376,7 @@ def boxplot_aggregated(src, roi, colors_plot, md_time, dir_path, fmt, domains, s
         ax = sns.boxplot(**plotting_parameters, palette=colors_plot["boxplots"])
         sns.stripplot(**plotting_parameters, size=8, marker="o", linewidth=2, dodge=True, palette=colors_plot["dots"])
         annotator = Annotator(ax, boxplot_pairs, **plotting_parameters)
-        annotator.configure(test="t-test_welch", text_format="star", hide_non_significant=True)
+        annotator.configure(test="Mann-Whitney", text_format="star", hide_non_significant=True)
         annotator.apply_and_annotate()
 
         # add separators between conditions
@@ -325,14 +401,17 @@ def boxplot_aggregated(src, roi, colors_plot, md_time, dir_path, fmt, domains, s
         plt.suptitle(f"Contacts by domain with the {roi} at {md_time} ns of molecular dynamics", fontsize="large",
                      fontweight="bold")
         if subtitle:
-            plt.title(subtitle)
+            subtitle = f"{subtitle}, Mann-Withney test with H0: two-sided"
+        else:
+            subtitle = "Mann-Withney test with H0: two-sided"
+        plt.title(subtitle)
         plt.xlabel("Domains", fontweight="bold")
         plt.ylabel(f"Number of contacts", fontweight="bold")
         plot = ax.get_figure()
         out_path_plot = os.path.join(dir_path, f"contacts_aggregated_{roi.lower().replace(' ', '-')}_"
                                                f"{md_time}-ns.{fmt}")
         plot.savefig(out_path_plot)
-        logging.info(f"Aggregated contacts by condition: {os.path.abspath(out_path_plot)}")
+    logging.info(f"\tAggregated contacts by condition: {os.path.abspath(out_path_plot)}")
 
 
 if __name__ == "__main__":
@@ -406,5 +485,9 @@ if __name__ == "__main__":
     data_conditions = pd.read_csv(args.input, sep=",", header=0)
     colors = extract_colors(args.input, args.group)
     df_contacts, domain_of_interest = aggregate_contacts(data_conditions, args.md_time, args.out, args.group)
-    boxplot_aggregated(df_contacts, domain_of_interest, colors, args.md_time, args.out, args.format, ordered_domains,
-                       args.subtitle)
+    updated_ordered_domains = update_domains_order(list(set(df_contacts["domains"])), ordered_domains)
+    compute_stats(df_contacts, updated_ordered_domains,
+                  os.path.join(args.out,
+                               f"statistics_{domain_of_interest.lower().replace(' ', '-')}_{args.md_time}-ns.csv"))
+    boxplot_aggregated(df_contacts, domain_of_interest, colors, args.md_time, args.out, args.format,
+                       updated_ordered_domains, args.subtitle)
