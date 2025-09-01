@@ -1,4 +1,4 @@
 condition,path,boxplot color,dot color
-insertions,data/plot_contacts_outputs/insertions,#fc030b,#700101
-duplications,data/plot_contacts_outputs/duplications,#eb8c34,#704001
-WT,data/plot_contacts_outputs/WT,#0303fc,#017070
+insertions,data/plot_hbonds_outputs/insertions,#fc030b,#700101
+duplications,data/plot_hbonds_outputs/duplications,#eb8c34,#704001
+WT,data/plot_hbonds_outputs/WT,#0303fc,#017070

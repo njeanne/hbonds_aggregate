@@ -424,7 +424,7 @@ if __name__ == "__main__":
 
     Distributed on an "AS IS" basis without warranties or conditions of any kind, either express or implied.
 
-    Aggregate the outliers contacts by regions in one plot to compare between various conditions.
+    Aggregate the outliers hydrogen bonds by regions in one plot to compare between various conditions.
 
     The input is a comma separated file without header which first column is the condition, the second column the path 
     of the directory containing the contacts analysis files and the third column the color in hexadecimal format. i.e:

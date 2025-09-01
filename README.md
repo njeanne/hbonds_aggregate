@@ -1,10 +1,10 @@
-# Aggregate the contacts
+# Hydrogen bonds aggregate
 
-From the CSV files describing the amino acids contacts between a Region of Interest and the other regions of a protein 
-during a Molecular Dynamics simulation, the script will produce a plot of the boxplots representing those contacts by 
-domains and conditions and a statistical test file.
+From the CSV files describing amino acid contacts between a Region of Interest and other regions of a protein during 
+the Molecular Dynamics simulation, the script generates a plot of boxplots representing these contacts by domain and 
+condition, along with a file containing the results of the statistical tests.
 
-The input CSV data are produced by the [plot_contacts](https://github.com/njeanne/plot_contacts/tree/main) script.
+The input CSV data are produced by the [plot_hbonds](https://github.com/njeanne/plot_hbonds/tree/main) script.
 
 ## Conda environment
 
@@ -29,9 +29,9 @@ The input CSV file must be a comma separated file with a header as in the follow
 
 | condition    | path | boxplot color | dot color |
 |--------------|---|---|---|
-| insertions   | data/plot_contacts_outputs/insertions | #fc030b | #700101 |
-| duplications | data/plot_contacts_outputs/duplications | #eb8c34 | #704001 |
-| WT           | data/plot_contacts_outputs/WT | #0303fc | #017070 |
+| insertions   | data/plot_hbonds_outputs/insertions | #fc030b | #700101 |
+| duplications | data/plot_hbonds_outputs/duplications | #eb8c34 | #704001 |
+| WT           | data/plot_hbonds_outputs/WT | #0303fc | #017070 |
 
 Some optional arguments can be used:
 - `--domain`: which is the path to a CSV file describing the domains of a protein. The order of the domains will be used to order the boxplots in the plot.
@@ -41,7 +41,7 @@ The command to use the 3 conditions of the input CSV file is:
 ```shell script
 conda activate contacts_aggregate
 
-./contacts_aggregate.py --md-time 1002 --domain data/sample_domains.csv \
+./hbonds_aggregate.py --md-time 1002 --domain data/sample_domains.csv \
 --subtitle "Annotations Koonin" --out results data/conditions.csv
 
 conda deactivate
@@ -51,7 +51,7 @@ The command to group *insertions* and *duplications* is:
 ```shell script
 conda activate contacts_aggregate
 
-./contacts_aggregate.py --group insertions duplications --md-time 1002 --domain data/sample_domains.csv \
+./hbonds_aggregate.py --group insertions duplications --md-time 1002 --domain data/sample_domains.csv \
 --subtitle "Annotations Koonin" --out results data/conditions.csv
 
 conda deactivate
