@@ -1,0 +1,8 @@
+domain,color,pymol color
+Methyltransferase,#0000b6,blue
+Y domain,#02eded,cyan
+Protease,#00ea00,green
+HVR,#ab0000,red
+X domain,#e1e100,yellow
+Helicase,#e77504,orange
+RdRP,#7a147a,magenta

@@ -1,8 +1,0 @@
-domain,start,end,color,pymol color
-Methyltransferase,59,239,#0000b6,blue
-Y domain,240,439,#02eded,cyan
-Protease,440,610,#00ea00,green
-HVR,714,793,#ab0000,red
-X domain,800,957,#e1e100,yellow
-Helicase,975,1219,#e77504,orange
-RdRP,1222,1708,#7a147a,magenta

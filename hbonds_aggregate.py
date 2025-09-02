@@ -116,7 +116,7 @@ def aggregate_contacts(conditions, md_time, dir_path, grouped):
     interest.
     :rtype: pandas.DataFrame, str
     """
-    pattern_sample = re.compile("outliers_(.+)_ORF1.csv")
+    pattern_sample = re.compile("outliers_(.+).csv")
     raw_dict = {}
     whole_domains = set()
     conditions_to_remove = []
@@ -438,12 +438,12 @@ if __name__ == "__main__":
     parser.add_argument("-o", "--out", required=True, type=str, help="the path to the output directory.")
     parser.add_argument("-t", "--md-time", required=True, type=int,
                         help="the molecular dynamics duration in nanoseconds.")
+    parser.add_argument("-d", "--domains", required=True, type=str,
+                        help="a sample CSV domains annotation file, to set the order of the protein domains on the X "
+                             "axis. If this option is not used, the domains will be displayed randomly.")
     parser.add_argument("-g", "--group", required=False, nargs="+", type=str,
                         help="a list of conditions, separated by spaces, to group as they appear in the first column "
                              "of the input file. The color used will be the color of the first condition.")
-    parser.add_argument("-d", "--domains", required=False, type=str,
-                        help="a sample CSV domains annotation file, to set the order of the protein domains on the X "
-                             "axis. If this option is not used, the domains will be displayed randomly.")
     parser.add_argument("-s", "--subtitle", required=False, type=str,
                         help="Free text used as a subtitle for the boxplots.")
     parser.add_argument("-x", "--format", required=False, default="svg",

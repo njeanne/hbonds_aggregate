@@ -42,7 +42,7 @@ The command to use the 3 conditions of the input CSV file is:
 conda activate contacts_aggregate
 
 ./hbonds_aggregate.py --md-time 1002 --domain data/sample_domains.csv \
---subtitle "Annotations Koonin" --out results data/conditions.csv
+--subtitle "3 classes" --out results data/conditions.csv
 
 conda deactivate
 ```
@@ -52,7 +52,7 @@ The command to group *insertions* and *duplications* is:
 conda activate contacts_aggregate
 
 ./hbonds_aggregate.py --group insertions duplications --md-time 1002 --domain data/sample_domains.csv \
---subtitle "Annotations Koonin" --out results data/conditions.csv
+--subtitle "Grouped insertions and duplications" --out results data/conditions.csv
 
 conda deactivate
 ```
