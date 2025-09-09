@@ -60,7 +60,8 @@ conda deactivate
 ## Outputs
 
 The script outputs are:
-- boxplots of the contacts by conditions and domains. Mann-Whitney tests with **two-sided as the null hypothesis** are performed for each domain between each pair of conditions.
+- boxplots of the contacts by conditions and domains.
+  Mann-Whitney tests with **first condition greater than the second as null hypothesis (`greater`)** are performed for each domain between each pair of conditions.
 Only the significant p-values are annotated:
 ```shell
 p-value annotation legend:
@@ -106,11 +107,3 @@ For the command grouping *insertions* and *duplications*:
 |MF444031-3c_WT |WT                     |Protease                |0       |
 |MF444031-3c_WT |WT                     |Methyltransferase       |0       |
 |MF444031-3c_WT |WT                     |Helicase                |0       |
-
-## Vigilance on outputs
-
-The statistical results may vary between the boxplots significance p-values and the CSV p-values
-because the null hypothesis is different:
-
-- boxplots H0: the two populations are different.
-- CSV statistics file: the contacts' count the group 1 distribution is greater than the one of the group 2. 

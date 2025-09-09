@@ -7,7 +7,7 @@ Created on 01 Feb. 2024
 __author__ = "Nicolas JEANNE"
 __copyright__ = "GNU General Public License"
 __email__ = "jeanne.n@chu-toulouse.fr"
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 
 import argparse
 import logging
@@ -240,7 +240,8 @@ def compute_stats(src, domains, out_path):
                     logging.warning(f"\t{txt} for the domain {domain} between {conditions[i]} and {conditions[j]}. "
                                     f"The test output is set to N/A.")
                 data["H0"].append(f"{conditions[i]} is greater than {conditions[j]}")
-    pd.DataFrame.from_dict(data).to_csv(out_path, index=False)
+    df = pd.DataFrame.from_dict(data)
+    df.to_csv(out_path, index=False)
     logging.info(f"\tStatistics file saved: {out_path}")
 
 
@@ -329,6 +330,7 @@ def all_values_equals_correction(df, pairs_list):
                             f"{df.loc[idx, 'contacts']} to perform the Mann-Withney test.")
     return df
 
+
 def boxplot_aggregated(src, roi, colors_plot, md_time, dir_path, fmt, domains, subtitle):
     """
     Create the boxplots by conditions.
@@ -364,7 +366,7 @@ def boxplot_aggregated(src, roi, colors_plot, md_time, dir_path, fmt, domains, s
     src = all_values_equals_correction(src, boxplot_pairs)
     # creating the plotting parameters
     plotting_parameters = {
-       "data": src,
+        "data": src,
         "x": "domains",
         "y": "contacts",
         "hue": "conditions",
@@ -377,7 +379,8 @@ def boxplot_aggregated(src, roi, colors_plot, md_time, dir_path, fmt, domains, s
         sns.stripplot(**plotting_parameters, size=8, marker="o", linewidth=2, dodge=True, palette=colors_plot["dots"])
         annotator = Annotator(ax, boxplot_pairs, **plotting_parameters)
         annotator.configure(test="Mann-Whitney", text_format="star", hide_non_significant=True)
-        annotator.apply_and_annotate()
+        annotator.apply_test(alternative='greater')
+        annotator.annotate()
 
         # add separators between conditions
         [ax.axvline(x + 0.5, alpha=0.2) for x in ax.get_xticks()]
@@ -487,7 +490,7 @@ if __name__ == "__main__":
     df_contacts, domain_of_interest = aggregate_contacts(data_conditions, args.md_time, args.out, args.group)
     updated_ordered_domains = update_domains_order(list(set(df_contacts["domains"])), ordered_domains)
     compute_stats(df_contacts, updated_ordered_domains,
-                  os.path.join(args.out,
-                               f"statistics_{domain_of_interest.lower().replace(' ', '-')}_{args.md_time}-ns.csv"))
+                  os.path.join(args.out, f"statistics_{domain_of_interest.lower().replace(' ', '-')}_"
+                                         f"{args.md_time}-ns.csv"))
     boxplot_aggregated(df_contacts, domain_of_interest, colors, args.md_time, args.out, args.format,
                        updated_ordered_domains, args.subtitle)
