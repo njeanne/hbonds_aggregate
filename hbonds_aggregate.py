@@ -73,7 +73,6 @@ def get_domains(domains_file_path):
     return domains
 
 
-
 def extract_colors(path, grouped):
     """
     Extract the colors by conditions for the boxplots and the dots.
@@ -189,7 +188,7 @@ def aggregate_contacts(conditions, md_time, dir_path, grouped):
                 reorganized_dict["contacts"].append(raw_dict[condition][smp][domain])
 
     df_out = pd.DataFrame.from_dict(reorganized_dict)
-    out_path = os.path.join(dir_path, f"hydrogen_bonds_aggregated_{roi.lower().replace(' ', '-')}_{md_time}-ns.csv")
+    out_path = os.path.join(dir_path, f"hydrogen-bonds_aggregated_{roi.lower().replace(' ', '-')}_{md_time}-ns.csv")
     df_out.to_csv(out_path, index=False)
     logging.info(f"Aggregated CSV file saved: {os.path.abspath(out_path)}")
     return df_out, roi
@@ -410,7 +409,7 @@ def boxplot_aggregated(src, roi, colors_plot, md_time, dir_path, fmt, domains, s
         plt.xlabel("Domains", fontweight="bold")
         plt.ylabel(f"Number of contacts", fontweight="bold")
         plot = ax.get_figure()
-        out_path_plot = os.path.join(dir_path, f"hbonds_aggregated_{roi.lower().replace(' ', '-')}_"
+        out_path_plot = os.path.join(dir_path, f"hydrogen-bonds_aggregated_{roi.lower().replace(' ', '-')}_"
                                                f"{md_time}-ns.{fmt}")
         plot.savefig(out_path_plot)
     logging.info(f"\tAggregated hydrogen bonds by condition: {os.path.abspath(out_path_plot)}")
@@ -489,7 +488,7 @@ if __name__ == "__main__":
     df_contacts, domain_of_interest = aggregate_contacts(data_conditions, args.md_time, args.out, args.group)
     updated_ordered_domains = update_domains_order(list(set(df_contacts["domains"])), ordered_domains)
     compute_stats(df_contacts, updated_ordered_domains,
-                  os.path.join(args.out, f"statistics_{domain_of_interest.lower().replace(' ', '-')}_"
+                  os.path.join(args.out, f"hydrogen-bonds_aggregated_statistics_{domain_of_interest.replace(' ', '-')}_"
                                          f"{args.md_time}-ns.csv"))
     boxplot_aggregated(df_contacts, domain_of_interest, colors, args.md_time, args.out, args.format,
                        updated_ordered_domains, args.subtitle)
