@@ -331,7 +331,7 @@ def all_values_equals_correction(df, pairs_list):
     return df
 
 
-def boxplot_aggregated(src, roi, colors_plot, md_time, dir_path, fmt, domains, subtitle):
+def boxplot_aggregated(src, roi, colors_plot, md_time, dir_path, fmt, domains, subtitle_arg):
     """
     Create the boxplots by conditions.
 
@@ -349,10 +349,10 @@ def boxplot_aggregated(src, roi, colors_plot, md_time, dir_path, fmt, domains, s
     :type fmt: str
     :param domains: the updated and ordered list of domains.
     :type domains: list
-    :param subtitle: the subtitle of the plot.
-    :type subtitle: str
+    :param subtitle_arg: the subtitle of the plot.
+    :type subtitle_arg: str
     """
-    logging.info("Plotting the aggregated contacts by condition and Mann-Whitney two-sided test:")
+    logging.info("Plotting the aggregated hydrogen bonds by condition:")
     plt.figure(figsize=(15, 15))
     # create the statistical pairs annotations
     boxplot_pairs = []
@@ -379,7 +379,7 @@ def boxplot_aggregated(src, roi, colors_plot, md_time, dir_path, fmt, domains, s
         sns.stripplot(**plotting_parameters, size=8, marker="o", linewidth=2, dodge=True, palette=colors_plot["dots"])
         annotator = Annotator(ax, boxplot_pairs, **plotting_parameters)
         annotator.configure(test="Mann-Whitney", text_format="star", hide_non_significant=True)
-        annotator.apply_test(alternative='greater')
+        annotator.apply_test(alternative="greater")
         annotator.annotate()
 
         # add separators between conditions
@@ -403,10 +403,9 @@ def boxplot_aggregated(src, roi, colors_plot, md_time, dir_path, fmt, domains, s
 
         plt.suptitle(f"Contacts by domain with the {roi} at {md_time} ns of molecular dynamics", fontsize="large",
                      fontweight="bold")
-        if subtitle:
-            subtitle = f"{subtitle}, Mann-Withney test with H0: two-sided"
-        else:
-            subtitle = "Mann-Withney test with H0: two-sided"
+        subtitle = "Mann-Withney H0: first condition greater than the second."
+        if subtitle_arg:
+            subtitle = f"{subtitle_arg}, {subtitle}"
         plt.title(subtitle)
         plt.xlabel("Domains", fontweight="bold")
         plt.ylabel(f"Number of contacts", fontweight="bold")
