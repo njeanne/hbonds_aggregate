@@ -189,7 +189,7 @@ def aggregate_contacts(conditions, md_time, dir_path, grouped):
                 reorganized_dict["contacts"].append(raw_dict[condition][smp][domain])
 
     df_out = pd.DataFrame.from_dict(reorganized_dict)
-    out_path = os.path.join(dir_path, f"contacts_aggregated_{roi.lower().replace(' ', '-')}_{md_time}-ns.csv")
+    out_path = os.path.join(dir_path, f"hydrogen_bonds_aggregated_{roi.lower().replace(' ', '-')}_{md_time}-ns.csv")
     df_out.to_csv(out_path, index=False)
     logging.info(f"Aggregated CSV file saved: {os.path.abspath(out_path)}")
     return df_out, roi
@@ -401,8 +401,8 @@ def boxplot_aggregated(src, roi, colors_plot, md_time, dir_path, fmt, domains, s
             custom_labels.append(f"{label} ({len(sample_set)})")
         ax.legend(handles[:3], custom_labels, title="Condition")
 
-        plt.suptitle(f"Contacts by domain with the {roi} at {md_time} ns of molecular dynamics", fontsize="large",
-                     fontweight="bold")
+        plt.suptitle(f"Hydrogen bonds by domain with the {roi} at {md_time} ns of molecular dynamics",
+                     fontsize="large", fontweight="bold")
         subtitle = "Mann-Withney H0: first condition greater than the second."
         if subtitle_arg:
             subtitle = f"{subtitle_arg}, {subtitle}"
@@ -410,10 +410,10 @@ def boxplot_aggregated(src, roi, colors_plot, md_time, dir_path, fmt, domains, s
         plt.xlabel("Domains", fontweight="bold")
         plt.ylabel(f"Number of contacts", fontweight="bold")
         plot = ax.get_figure()
-        out_path_plot = os.path.join(dir_path, f"contacts_aggregated_{roi.lower().replace(' ', '-')}_"
+        out_path_plot = os.path.join(dir_path, f"hbonds_aggregated_{roi.lower().replace(' ', '-')}_"
                                                f"{md_time}-ns.{fmt}")
         plot.savefig(out_path_plot)
-    logging.info(f"\tAggregated contacts by condition: {os.path.abspath(out_path_plot)}")
+    logging.info(f"\tAggregated hydrogen bonds by condition: {os.path.abspath(out_path_plot)}")
 
 
 if __name__ == "__main__":
