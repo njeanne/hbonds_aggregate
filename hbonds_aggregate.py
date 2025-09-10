@@ -407,7 +407,7 @@ def boxplot_aggregated(src, roi, colors_plot, md_time, dir_path, fmt, domains, s
             subtitle = f"{subtitle_arg}, {subtitle}"
         plt.title(subtitle)
         plt.xlabel("Domains", fontweight="bold")
-        plt.ylabel(f"Number of contacts", fontweight="bold")
+        plt.ylabel(f"Hydrogen bonds", fontweight="bold")
         plot = ax.get_figure()
         out_path_plot = os.path.join(dir_path, f"hydrogen-bonds_aggregated_{roi.lower().replace(' ', '-')}_"
                                                f"{md_time}-ns.{fmt}")
