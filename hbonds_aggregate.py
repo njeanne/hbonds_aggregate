@@ -99,9 +99,9 @@ def extract_colors(path, grouped):
     return colors_by_condition
 
 
-def aggregate_contacts(conditions, md_time, dir_path, grouped):
+def aggregate_hydrogen_bonds(conditions, md_time, dir_path, grouped):
     """
-    Extract the number of contacts by region for each sample in a condition.
+    Extract the number of hydrogen bonds by region for each sample in a condition.
 
     :param conditions: the conditions dataframe.
     :type conditions: pandas.DataFrame
@@ -159,13 +159,13 @@ def aggregate_contacts(conditions, md_time, dir_path, grouped):
                 whole_domains.add(row["second partner domain"])
                 roi_set.add(row["ROI partner domain"])
                 if row["second partner domain"] not in raw_dict[condition][sample]:
-                    raw_dict[condition][sample][row["second partner domain"]] = row["number atoms contacts"]
+                    raw_dict[condition][sample][row["second partner domain"]] = row["number atoms hydrogen bonds"]
                 else:
-                    raw_dict[condition][sample][row["second partner domain"]] += row["number atoms contacts"]
-            # check if there is only one region of interest making contacts in each of the files used
+                    raw_dict[condition][sample][row["second partner domain"]] += row["number atoms hydrogen bonds"]
+            # check if there is only one region of interest making hydrogen bonds in each of the files used
             if len(roi_set) > 1:
                 logging.error(f"For {sample}: more than one domain in the columns 'ROI partner domain' "
-                              f"({', '.join(list(roi_set))}) of the outliers contact CSV file.")
+                              f"({', '.join(list(roi_set))}) of the outliers hydrogen bond CSV file.")
                 sys.exit(1)
 
     roi = list(roi_set)[0]
@@ -178,14 +178,14 @@ def aggregate_contacts(conditions, md_time, dir_path, grouped):
                     raw_dict[condition][smp][domain] = 0
 
     # reorganize the data
-    reorganized_dict = {"sample": [], "conditions": [], "domains": [], "contacts": []}
+    reorganized_dict = {"sample": [], "conditions": [], "domains": [], "hydrogen bonds": []}
     for condition in raw_dict:
         for smp in raw_dict[condition]:
             for domain in raw_dict[condition][smp]:
                 reorganized_dict["sample"].append(smp)
                 reorganized_dict["conditions"].append(condition)
                 reorganized_dict["domains"].append(domain)
-                reorganized_dict["contacts"].append(raw_dict[condition][smp][domain])
+                reorganized_dict["hydrogen bonds"].append(raw_dict[condition][smp][domain])
 
     df_out = pd.DataFrame.from_dict(reorganized_dict)
     out_path = os.path.join(dir_path, f"hydrogen-bonds_aggregated_{roi.lower().replace(' ', '-')}_{md_time}-ns.csv")
@@ -196,11 +196,11 @@ def aggregate_contacts(conditions, md_time, dir_path, grouped):
 
 def compute_stats(src, domains, out_path):
     """
-    Test the different domains contacts with the region of interest between the different conditions.
+    Test the different domains hydrogen bonds with the region of interest between the different conditions.
     A Mann-Whitney U test is performed with the null hypothesis is that the condition 1 group is greater than the
     condition 2 group.
 
-    :param src: the contacts dataframe.
+    :param src: the hydrogen bonds dataframe.
     :type src: pandas.DataFrame
     :param domains: the domains.
     :type domains: list
@@ -208,7 +208,7 @@ def compute_stats(src, domains, out_path):
     :type out_path: str
     """
     logging.info("Computing Mann-Whitney U test with a null hypothesis group 1 is greater than group 2:")
-    data = {"contact with": [], "group 1": [], "group 2": [], "p-value": [], "statistic": [], "test":[], "H0": [],
+    data = {"hydrogen bond with": [], "group 1": [], "group 2": [], "p-value": [], "statistic": [], "test":[], "H0": [],
             "comment": []}
     # get the conditions as a list, for loop performed to keep the conditions' order
     conditions = []
@@ -220,13 +220,13 @@ def compute_stats(src, domains, out_path):
         domain_rows = src[src["domains"] == domain]
         for i in range(0, len(conditions) - 1):
             for j in range(i + 1, len(conditions)):
-                data["contact with"].append(domain)
+                data["hydrogen bond with"].append(domain)
                 data["test"].append("Mann-Whitney U")
                 data["group 1"].append(conditions[i])
                 data["group 2"].append(conditions[j])
                 try:
-                    test = mannwhitneyu(x=domain_rows["contacts"][domain_rows["conditions"] == conditions[i]],
-                                        y=domain_rows["contacts"][domain_rows["conditions"] == conditions[j]],
+                    test = mannwhitneyu(x=domain_rows["hydrogen bonds"][domain_rows["conditions"] == conditions[i]],
+                                        y=domain_rows["hydrogen bonds"][domain_rows["conditions"] == conditions[j]],
                                         alternative="greater")
                     data["p-value"].append(test.pvalue)
                     data["statistic"].append(test.statistic)
@@ -246,7 +246,7 @@ def compute_stats(src, domains, out_path):
 
 def update_domains_order(labels, domains_ordered):
     """
-    Update and order the domains by adding before, between and after annotations if some contacts are present outside
+    Update and order the domains by adding before, between and after annotations if some hydrogen bonds are present outside
     the domains.
 
     :param labels: the labels.
@@ -305,16 +305,16 @@ def all_values_equals_correction(df, pairs_list):
     If the values between two conditions are the sames, the Mann-Whitney test cannot be performed, a small variation is
     added to the first value of the first condition.
 
-    :param df: the contacts dataframe.
+    :param df: the hydrogen bonds dataframe.
     :type df: pandas.DataFrame
     :param pairs_list: the list of two tuples (domains and condition) to test with the Mann-Whitney test.
     :type pairs_list: list
-    :return: the updated contacts dataframe.
+    :return: the updated hydrogen bonds dataframe.
     :rtype: pandas.DataFrame
     """
     for pairs in pairs_list:
-        pair_1 = set(df["contacts"][(df["domains"] == pairs[0][0]) & (df["conditions"] == pairs[0][1])])
-        pair_2 = set(df["contacts"][(df["domains"] == pairs[1][0]) & (df["conditions"] == pairs[1][1])])
+        pair_1 = set(df["hydrogen bonds"][(df["domains"] == pairs[0][0]) & (df["conditions"] == pairs[0][1])])
+        pair_2 = set(df["hydrogen bonds"][(df["domains"] == pairs[1][0]) & (df["conditions"] == pairs[1][1])])
         if len(pair_1) == 1 and len(pair_1) == len(pair_2):
             # add 0.00000001 to the first value of the first condition
             # to be able to perform the Mann-Withney test if all the values are the same, see:
@@ -322,11 +322,11 @@ def all_values_equals_correction(df, pairs_list):
             # for explanations
             mask = (df["domains"] == pairs[0][0]) & (df["conditions"] == pairs[0][1])
             idx = mask.idxmax() if mask.any() else numpy.repeat(False, len(df))
-            previous_value = df.loc[idx, "contacts"]
-            df.loc[idx, "contacts"] = previous_value + 0.00000001
+            previous_value = df.loc[idx, "hydrogen bonds"]
+            df.loc[idx, "hydrogen bonds"] = previous_value + 0.00000001
             logging.warning(f"\tdomain \"{pairs[0][0]}\" conditions \"{pairs[0][1]}\" and \"{pairs[1][1]}\" have the same values "
                             f"{previous_value}. The first value of the condition \"{pairs[0][1]}\" is set to "
-                            f"{df.loc[idx, 'contacts']} to perform the Mann-Withney test.")
+                            f"{df.loc[idx, 'hydrogen bonds']} to perform the Mann-Withney test.")
     return df
 
 
@@ -336,7 +336,7 @@ def boxplot_aggregated(src, roi, colors_plot, md_time, dir_path, fmt, domains, s
 
     :param src: the data source.
     :type src: pandas.DataFrame
-    :param roi: region of interest, the region in contact with the other domains.
+    :param roi: region of interest, the region in hydrogen bond with the other domains.
     :type roi: str
     :param colors_plot: the colors to use.
     :type colors_plot: dict
@@ -367,7 +367,7 @@ def boxplot_aggregated(src, roi, colors_plot, md_time, dir_path, fmt, domains, s
     plotting_parameters = {
         "data": src,
         "x": "domains",
-        "y": "contacts",
+        "y": "hydrogen bonds",
         "hue": "conditions",
         "order": domains
     }
@@ -400,7 +400,7 @@ def boxplot_aggregated(src, roi, colors_plot, md_time, dir_path, fmt, domains, s
             custom_labels.append(f"{label} ({len(sample_set)})")
         ax.legend(handles[:3], custom_labels, title="Condition")
 
-        plt.suptitle(f"Hydrogen bonds by domain with the {roi} at {md_time} ns of molecular dynamics",
+        plt.suptitle(f"{roi} hydrogen bond partners at {md_time} ns of molecular dynamics",
                      fontsize="large", fontweight="bold")
         subtitle = "Mann-Withney H0: first condition greater than the second."
         if subtitle_arg:
@@ -428,12 +428,13 @@ if __name__ == "__main__":
     Aggregate the outliers hydrogen bonds by regions in one plot to compare between various conditions.
 
     The input is a comma separated file without header which first column is the condition, the second column the path 
-    of the directory containing the contacts analysis files and the third column the color in hexadecimal format. i.e:
+    of the directory containing the hydrogen bonds analysis files and the third column the color in hexadecimal format. 
+    i.e:
 
     insertions,tests/inputs/insertions,#fc030b
     WT,tests/inputs/WT,#0303fc
 
-    The output is a plot with the aggregated contacts data by region and by condition.
+    The output is a plot with the aggregated hydrogen bonds data by region and by condition.
     """
     parser = argparse.ArgumentParser(description=descr, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("-o", "--out", required=True, type=str, help="the path to the output directory.")
@@ -465,7 +466,7 @@ if __name__ == "__main__":
     parser.add_argument("--version", action="version", version=__version__)
     parser.add_argument("input", type=str,
                         help="the path to the CSV (comma separated without header) file which first column is the "
-                             "condition, the second column the path of the directory containing the plots_contacts "
+                             "condition, the second column the path of the directory containing the plots_hbonds "
                              "script CSV output files and the third column the color.")
     args = parser.parse_args()
 
@@ -485,10 +486,10 @@ if __name__ == "__main__":
     ordered_domains = get_domains(args.domains)
     data_conditions = pd.read_csv(args.input, sep=",", header=0)
     colors = extract_colors(args.input, args.group)
-    df_contacts, domain_of_interest = aggregate_contacts(data_conditions, args.md_time, args.out, args.group)
-    updated_ordered_domains = update_domains_order(list(set(df_contacts["domains"])), ordered_domains)
-    compute_stats(df_contacts, updated_ordered_domains,
+    df_hydrogen_bonds, domain_of_interest = aggregate_hydrogen_bonds(data_conditions, args.md_time, args.out, args.group)
+    updated_ordered_domains = update_domains_order(list(set(df_hydrogen_bonds["domains"])), ordered_domains)
+    compute_stats(df_hydrogen_bonds, updated_ordered_domains,
                   os.path.join(args.out, f"hydrogen-bonds_aggregated_statistics_{domain_of_interest.replace(' ', '-')}_"
                                          f"{args.md_time}-ns.csv"))
-    boxplot_aggregated(df_contacts, domain_of_interest, colors, args.md_time, args.out, args.format,
+    boxplot_aggregated(df_hydrogen_bonds, domain_of_interest, colors, args.md_time, args.out, args.format,
                        updated_ordered_domains, args.subtitle)
