@@ -159,9 +159,9 @@ def aggregate_hydrogen_bonds(conditions, md_time, dir_path, grouped):
                 whole_domains.add(row["second partner domain"])
                 roi_set.add(row["ROI partner domain"])
                 if row["second partner domain"] not in raw_dict[condition][sample]:
-                    raw_dict[condition][sample][row["second partner domain"]] = row["number atoms hydrogen bonds"]
+                    raw_dict[condition][sample][row["second partner domain"]] = row["number atoms contacts"]
                 else:
-                    raw_dict[condition][sample][row["second partner domain"]] += row["number atoms hydrogen bonds"]
+                    raw_dict[condition][sample][row["second partner domain"]] += row["number atoms contacts"]
             # check if there is only one region of interest making hydrogen bonds in each of the files used
             if len(roi_set) > 1:
                 logging.error(f"For {sample}: more than one domain in the columns 'ROI partner domain' "
