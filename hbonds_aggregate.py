@@ -115,7 +115,7 @@ def aggregate_hydrogen_bonds(conditions, md_time, dir_path, grouped):
     interest.
     :rtype: pandas.DataFrame, str
     """
-    pattern_sample = re.compile("outliers_(.+).csv")
+    pattern_sample = re.compile("hydrogen-bonds_(.+).csv")
     raw_dict = {}
     whole_domains = set()
     conditions_to_remove = []
@@ -125,7 +125,7 @@ def aggregate_hydrogen_bonds(conditions, md_time, dir_path, grouped):
         by_condition = []
         try:
             for fn in os.listdir(row_condition["path"]):
-                if fn.startswith("outliers") and fn.endswith(".csv"):
+                if fn.startswith("hydrogen-bonds") and fn.endswith(".csv"):
                     by_condition.append(fn)
         except FileNotFoundError as exc:
             logging.error(exc, exc_info=True)
@@ -165,7 +165,7 @@ def aggregate_hydrogen_bonds(conditions, md_time, dir_path, grouped):
             # check if there is only one region of interest making hydrogen bonds in each of the files used
             if len(roi_set) > 1:
                 logging.error(f"For {sample}: more than one domain in the columns 'ROI partner domain' "
-                              f"({', '.join(list(roi_set))}) of the outliers hydrogen bond CSV file.")
+                              f"({', '.join(list(roi_set))}) of the hydrogen bond CSV file.")
                 sys.exit(1)
 
     roi = list(roi_set)[0]
@@ -425,7 +425,7 @@ if __name__ == "__main__":
 
     Distributed on an "AS IS" basis without warranties or conditions of any kind, either express or implied.
 
-    Aggregate the outliers hydrogen bonds by regions in one plot to compare between various conditions.
+    Aggregate the hydrogen bonds by regions in one plot to compare between various conditions.
 
     The input is a comma separated file without header which first column is the condition, the second column the path 
     of the directory containing the hydrogen bonds analysis files and the third column the color in hexadecimal format. 
